@@ -9,6 +9,12 @@ const cssnano = require("cssnano");
 const sourcemaps = require("gulp-sourcemaps");
 const eslint = require('gulp-eslint');
 const jasmineBrowser = require('gulp-jasmine-browser');
+const concat = require('gulp-concat');
+const uglify = require('gulp-uglify');
+const babel = require('gulp-babel');
+const imagemin = require('gulp-imagemin');
+const pngquant = require('imagemin-pngquant');
+
 
 function reload() {
   browserSync.reload();
@@ -20,7 +26,7 @@ var paths = {
       
       src: "sass/**/*.scss",
       
-      dest: "./css"
+      dest: "dist/css"
   },
 
   lint:{
@@ -70,11 +76,35 @@ function style() {
 
 exports.style = style;
 
+function copyHtml() {
+
+  return (
+    gulp.src('index.html')
+    .pipe(gulp.dest('dist'))
+  )
+
+}
+
+exports.copyHtml = copyHtml;
+
+function copyImages() {
+
+  return gulp.src('src/images/*')
+  .pipe(imagemin({
+      progressive: true,
+      use: [pngquant()]
+  }))
+  .pipe(gulp.dest('dist/images'));
+
+}
+
+exports.copyImages = copyImages;
+
 function lint(){
 
   return (
     gulp
-      .src([paths.lint.src, lint])
+      .src([paths.lint.src])
       .pipe(eslint())
       .pipe(eslint.format())
       .pipe(eslint.failOnError())
@@ -100,6 +130,28 @@ exports.lint = lint
 //   );
 // });
 
+function scripts(){
+  gulp.src('js/**/*.js')
+  .pipe(sourcemaps.init())
+  .pipe(babel())
+  .pipe(concat('all.js'))
+  .pipe(sourcemaps.write())
+  .pipe(gulp.dest('dist/all.js'));
+}
+
+exports.scripts = scripts;
+
+function scriptsDist(){
+  gulp.src('js/**/*.js')
+  .pipe(sourcemaps.init())
+  .pipe(babel())
+  .pipe(concat('all.js'))
+  .pipe(uglify())
+  .pipe(sourcemaps.write())
+  .pipe(gulp.dest('dist/all.js'));
+}
+
+exports.scriptsDist = scriptsDist;
 
 // gulp.task("default", gulp.series("style", function() {
 
@@ -117,41 +169,54 @@ function watch(){
 
   gulp.watch(paths.style.src, style);
   gulp.watch(paths.lint.src, lint);
-  gulp.watch("./index.html", reload);
+  gulp.watch("./index.html", copyHtml);
+  gulp.watch("./dist/index.html").on('change', browserSync.reload);
 
   browserSync.init({
-    server: "./"
+    server: "./dist"
   });
 }
   
 exports.watch = watch
 
-// function test(){
+function tests(){
 
-//     return gulp
-//     .src('tests/spec/extraSpec.js')
-//     .pipe(jasmineBrowser.specRunner({ console: true }))
-//     .pipe(jasmineBrowser.headless({ driver: 'chrome' }));
-
-// }
-
-gulp.task('tests', function() {
-  return gulp
-      .src(['src/**/*.js', 'spec/**/*_spec.js'])
-      .pipe(jasmineBrowser.specRunner({ console: true }))
-      .pipe(jasmineBrowser.headless({ driver: 'chrome' }));
-});
-
-function test(){
-
-  gulp
-  .src(['src/**/*.js', 'spec/**/*_spec.js'])
-  .pipe(jasmineBrowser.specRunner())
-  .pipe(jasmineBrowser.server({ port: 8080 }));
+    return gulp
+    .src('tests/spec/extraSpec.js')
+    .pipe(jasmineBrowser.specRunner({ console: true }))
+    .pipe(jasmineBrowser.headless({ driver: 'chrome' }));
 
 }
 
-exports.test = test
+// gulp.task('tests', function() {
+//   return gulp
+//       .src(['src/**/*.js', 'spec/**/*_spec.js'])
+//       .pipe(jasmineBrowser.specRunner({ console: true }))
+//       .pipe(jasmineBrowser.headless({ driver: 'chrome' }));
+// });
+
+// function test(){
+
+//   gulp
+//   .src(['src/**/*.js', 'spec/**/*_spec.js'])
+//   .pipe(jasmineBrowser.specRunner())
+//   .pipe(jasmineBrowser.server({ port: 8080 }));
+
+// }
+
+exports.tests = tests
+
+function dist(){
+
+  copyHtml();     //html
+  copyImages();   //img
+  style();        //css
+  lint();         //checking coding style & syntax
+  scriptsDist();  //js
+
+}
+
+exports.dist = dist
 
 /*---------------------------------------------------------------*/
 //err
