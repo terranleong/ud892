@@ -1,0 +1,1 @@
+var name="hihihi";function changeName(n){;"nonono"}changeName(name)(function(){return 1})();
